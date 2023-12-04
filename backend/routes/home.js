@@ -59,6 +59,18 @@ router
     }
   });
 
+router.route("/:title").post(async (req, res) => {
+  const { title } = req.params;
+  if (!title) return res.status(400).json({ Alert: "Title not found" });
+  const titletoString = String(title);
+  const isValid = await mediaModel.find({ title: titletoString });
+  if (!isValid) {
+    return res.status(400).json({ Alert: "Film doesn't exist" });
+  } else {
+    res.status(200).json(isValid);
+  }
+});
+
 router
   .route("/:id")
   .delete(async (req, res) => {
@@ -72,7 +84,7 @@ router
       return res.status(200).json({ Alert: "Film Deleted" });
     }
   })
-  .put(async (req, res) => {
+  .post(async (req, res) => {
     const { id } = req.params;
     const { filmname } = req.body;
     const convertedString = String(id);

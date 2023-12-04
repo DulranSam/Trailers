@@ -6,7 +6,7 @@ function Movies() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [modifieduser, setModifiedUser] = useState("");
+  const [modifiedUser, setModifiedUser] = useState("");
 
   useEffect(() => {
     async function fetchFromBack() {
@@ -16,7 +16,6 @@ function Movies() {
         setData(response.data);
       } catch (error) {
         console.error(error);
-        setData([]);
       } finally {
         setLoading(false);
       }
@@ -24,11 +23,12 @@ function Movies() {
     fetchFromBack();
   }, []);
 
-  async function DeleteFilm(id) {
+  async function deleteFilm(id) {
     try {
       setLoading(true);
-      const response = await Axios.delete(`http://localhost:8000/home/${id}`);
-      setData(response.data);
+      await Axios.delete(`http://localhost:8000/home/${id}`);
+
+      setData((prevData) => prevData.filter((film) => film._id !== id));
     } catch (error) {
       console.error(error);
     } finally {
@@ -36,13 +36,18 @@ function Movies() {
     }
   }
 
-  async function EditTitle(id, film) {
+  async function editTitle(id, film) {
     try {
       setLoading(true);
-      const response = await Axios.put(`http://localhost:8000/home/${id}`, {
+      await Axios.put(`http://localhost:8000/home/${id}`, {
         filmname: film,
       });
-      setData(response.data);
+
+      setData((prevData) =>
+        prevData.map((item) =>
+          item._id === id ? { ...item, title: film } : item
+        )
+      );
     } catch (error) {
       console.error(error);
     } finally {
@@ -50,16 +55,28 @@ function Movies() {
     }
   }
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e, searchTerm) => {
     e.preventDefault();
-    // Add logic to filter data based on the search term
-    // For example: const filteredData = data.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
-    // setData(filteredData);
+    try {
+      setLoading(true);
+      const response = await Axios.post(
+        `http://localhost:8000/home/${searchTerm}`
+      );
+      setData(response.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
-      <form onSubmit={handleSearch}>
+      <form
+        onSubmit={(e) => {
+          handleSearch(e, searchTerm);
+        }}
+      >
         <input
           type="text"
           placeholder="Search Here..."
@@ -75,12 +92,12 @@ function Movies() {
           <div key={x._id}>
             <h2 style={{ fontSize: 32 }}>{x.title}</h2>
             <p>{x.description || "No description found"}</p>
-            <img src={x.image} alt={`Image of ${x.title}`}></img>
+            <img src={x.image} alt={`Image of ${x.title}`} />
             <a href={x.trailer}>Trailer for {x.title}</a>
             <label>
               <button
                 onClick={() => {
-                  DeleteFilm(x._id);
+                  deleteFilm(x._id);
                 }}
               >
                 Delete Film
@@ -90,10 +107,10 @@ function Movies() {
                   setModifiedUser(e.target.value);
                 }}
                 placeholder="Update Film Title"
-              ></input>
+              />
               <button
                 onClick={() => {
-                  EditTitle(x._id, modifieduser);
+                  editTitle(x._id, modifiedUser);
                 }}
               >
                 Make changes
