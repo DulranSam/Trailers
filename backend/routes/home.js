@@ -1,90 +1,87 @@
 const express = require("express");
 const router = express.Router();
-const mediaModel = require("../models/media");
-require("dotenv").config();
-const mapskey = process.env.MAPSKEY;
+const multer = require("multer");
 const sharp = require("sharp");
 const { join } = require("path");
-const Axios = require("axios");
-const multer = require("multer");
+const mediaModel = require("../models/media");
+require("dotenv").config();
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router
   .route("/")
   .get(async (req, res) => {
-    const videos = await mediaModel.find();
-    res.json(videos);
+    try {
+      const videos = await mediaModel.find();
+      res.json(videos);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   })
   .post(upload.single("photo"), async (req, res) => {
-    const { title, description, trailer, photo } = req.body;
-    if (!title || !trailer) {
-      return res.status(400).json({ Alert: "Title or trailer missing" });
-    }
+    try {
+      const { title, description, trailer } = req.body;
+      if (!title || !trailer) {
+        return res.status(400).json({ alert: "Title or trailer missing" });
+      }
 
-    const filmExists = await mediaModel.findOne({ title: title });
-    let photofilename = photo;
-    if (req.file) {
-      photofilename = `${Date.now()}.jpeg`;
-      await sharp(req.file.buffer)
-        .resize(480, 360)
-        .jpeg({ mozjpeg: true, quality: 60 })
-        .toFile(join(__dirname, "public/filmimages", photofilename));
-    }
-    if (!filmExists) {
-      const newMovie = new mediaModel({
-        title,
-        description,
-        trailer,
-        photo: photofilename,
-      });
+      const filmExists = await mediaModel.findOne({ title: title });
+      let photofilename = req.body.photo;
+      if (req.file) {
+        photofilename = `${Date.now()}.jpeg`;
+        const filePath = join(__dirname, "public/filmimages", photofilename);
+        console.log("File Path:", filePath);
 
-      await newMovie.save();
-      return res.status(200).json({ Alert: `${title} Saved` });
-    } else {
-      return res.status(409).json({ Alert: `${title} already exists` });
+        await sharp(photofilename)
+          .resize(480, 360)
+          .jpeg({ mozjpeg: true, quality: 60 })
+          .toFile(filePath);
+      }
+
+      if (!filmExists) {
+        const newMovie = new mediaModel({
+          title,
+          description,
+          trailer,
+          photo: photofilename,
+        });
+
+        await newMovie.save();
+        return res.status(201).json({ alert: `${title} Saved` });
+      } else {
+        return res.status(409).json({ alert: `${title} already exists` });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-  })
-  .put()
-  .delete();
+  });
 
 router
-  .route("/sub")
-  .get(async (req, res) => {
-    const r = await Axios.get(
-      "https://maps.googleapis.com/maps/api/distancematrix/json",
-      {
-        headers: {
-          Authorization: `Bearer ${mapskey}`,
-        },
-      }
-    ).then((r) => {
-      res.json(r.data);
-    });
+  .route("/:id")
+  .delete(async (req, res) => {
+    const { id } = req.params;
+    const convertedString = String(id);
+    const filmExists = await mediaModel.findOne({ _id: convertedString });
+    if (!filmExists) {
+      return res.status(404).json({ Alert: "Film doesn't exist" });
+    } else {
+      await mediaModel.deleteOne({ _id: id });
+      return res.status(200).json({ Alert: "Film Deleted" });
+    }
   })
-  .post(async (req, res) => {
-    try {
-      const r = await Axios.post(
-        `https://www.googleapis.com/geolocation/v1/geolocate?key=${mapskey}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-        {
-          data: {
-            homeMobileCountryCode: 310,
-            homeMobileNetworkCode: 410,
-            radioType: "gsm",
-            carrier: "Vodafone",
-            considerIp: true,
-          },
-        }
-      ).then((r) => {
-        res.json(r.data);
-      });
-    } catch (err) {
-      console.error(err);
+  .put(async (req, res) => {
+    const { id } = req.params;
+    const { filmname } = req.body;
+    const convertedString = String(id);
+    const filmExists = await mediaModel.findOne({ _id: convertedString });
+    if (!filmExists) {
+      return res.status(404).json({ Alert: "Film doesn't exist" });
+    } else {
+      await mediaModel.findOneAndUpdate({ title: filmname });
+      return res.status(200).json({ Alert: "Film Updated" });
     }
   });
 

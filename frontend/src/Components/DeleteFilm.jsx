@@ -9,7 +9,7 @@ const DeleteFilm = () => {
     async function fetchFromBack() {
       try {
         setLoading(true);
-        const response = await Axios.get("http://localhost:8000/home");
+        const response = await Axios.delete(`http://localhost:8000/home`);
         setData(response.data);
       } catch (error) {
         console.error(error);

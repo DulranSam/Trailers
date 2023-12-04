@@ -6,6 +6,7 @@ function Movies() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [modifieduser, setModifiedUser] = useState("");
 
   useEffect(() => {
     async function fetchFromBack() {
@@ -22,6 +23,32 @@ function Movies() {
     }
     fetchFromBack();
   }, []);
+
+  async function DeleteFilm(id) {
+    try {
+      setLoading(true);
+      const response = await Axios.delete(`http://localhost:8000/home/${id}`);
+      setData(response.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function EditTitle(id, film) {
+    try {
+      setLoading(true);
+      const response = await Axios.put(`http://localhost:8000/home/${id}`, {
+        filmname: film,
+      });
+      setData(response.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -46,14 +73,38 @@ function Movies() {
       {data.length ? (
         data.map((x) => (
           <div key={x._id}>
-            <h1>{x.title}</h1>
-            <p>{x.description}</p>
-            <a href={x.trailer}>Trailer</a>
+            <h2 style={{ fontSize: 32 }}>{x.title}</h2>
+            <p>{x.description || "No description found"}</p>
+            <img src={x.image} alt={`Image of ${x.title}`}></img>
+            <a href={x.trailer}>Trailer for {x.title}</a>
+            <label>
+              <button
+                onClick={() => {
+                  DeleteFilm(x._id);
+                }}
+              >
+                Delete Film
+              </button>
+              <input
+                onChange={(e) => {
+                  setModifiedUser(e.target.value);
+                }}
+                placeholder="Update Film Title"
+              ></input>
+              <button
+                onClick={() => {
+                  EditTitle(x._id, modifieduser);
+                }}
+              >
+                Make changes
+              </button>
+            </label>
           </div>
         ))
       ) : (
         <p>No Trailers Added</p>
       )}
+
       <Link to="/addfilm">Add Film</Link>
     </>
   );

@@ -48,7 +48,7 @@ const AddFilm = () => {
   }
 
   return (
-    <div>
+    <>
       <h1 style={{ fontSize: 32 }}>Add Film</h1>
       <form onSubmit={createFilm}>
         <input
@@ -69,8 +69,8 @@ const AddFilm = () => {
         </button>
         <h1>{status !== "" ? status : ""}</h1>
       </form>
-      <Link to="/movies">Go to Movies</Link>
-    </div>
+      <Link to="/">Go to Movies</Link>
+    </>
   );
 };
 
